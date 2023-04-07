@@ -1,0 +1,7 @@
+torch
+pyoptmat
+functorch
+xarray[io]
+xarray
+tqdm
+numpy

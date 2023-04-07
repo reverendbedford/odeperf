@@ -6,15 +6,31 @@ import test, samples
 
 # Comment for single precision
 torch.set_default_tensor_type(torch.DoubleTensor)
+dtype = "double"
 
 # Setup appropriately...
 device = torch.device("cuda")
+devtype = "cuda"
+
+def run_massdamperspring():
+    name = "massdamperspring"
+    repeats = 3
+
+    model = samples.MassDamperSpring
+    nsize = [2,3,4,5,10,20,30,40,50,75,100,200,300,400,500]
+    nbatch = [3,10,30,100,300,1000]
+    ntime = 1000
+    nchunk = [1,2,3,4,5,10,20,30,40,50,75,100]
+    jac_type = ["analytic", "AD"]
+    backward_type = ["adjoint", "AD"]
+    integration_method = "backward-euler"
+
+    res = test.run_grid(model, nsize, nbatch, ntime, nchunk, jac_type, 
+            backward_type, integration_method, device, repeat = repeats)
+
+    res.to_netcdf(name + "_" + dtype + "_" + devtype + ".nc")
 
 if __name__ == "__main__":
-    time_f, time_b, check = test.run_test_case(samples.MassDamperSpring,
-            100, 50, 100, 10, "analytic", "adjoint", "backward-euler", 
-            device)
-
-    print(time_f, time_b, check)
+    run_massdamperspring()
 
 

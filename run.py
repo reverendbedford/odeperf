@@ -17,9 +17,9 @@ def run_massdamperspring():
     repeats = 3
 
     model = samples.MassDamperSpring
-    nsize = [2,3,4,5,10,20,30,40,50,75,100,200,300,400,500]
-    nbatch = [3,10,30,100,300,1000]
-    ntime = 1000
+    nsize = [2,4,6,10,20,30,40,50]
+    nbatch = [3,10,30,100,300]
+    ntime = 300
     nchunk = [1,2,3,4,5,10,20,30,40,50,75,100]
     jac_type = ["analytic", "AD"]
     backward_type = ["adjoint", "AD"]

@@ -13,7 +13,7 @@ class MassDamperSpring(torch.nn.Module):
     number of elements.
 
     Args:
-        size (int): size of problem
+        half_size (int): half size of problem
 
     Keyword args:
         K_range (tuple): (min stiffness, max stiffness)
@@ -24,13 +24,13 @@ class MassDamperSpring(torch.nn.Module):
         force_period_range (tuple): range of periods for sin force
 
     """
-    def __init__(self, size, K_range = (0.01,1.0), C_range = (1.0e-6, 1.0e-4),
+    def __init__(self, half_size, K_range = (0.01,1.0), C_range = (1.0e-6, 1.0e-4),
             M_range = (1.0e-7, 1.0e-5), t_max = 1.0, force_mag = 1.0,
             force_period_range = (1.0e-2, 1.0)):
         super().__init__()
 
-        self.size = size
-        self.half_size = self.size // 2
+        self.half_size = half_size
+        self.size = self.half_size * 2
 
         self.K = torch.nn.Parameter(torch.linspace(*K_range, self.half_size))
         self.C = torch.nn.Parameter(torch.linspace(*C_range, self.half_size))

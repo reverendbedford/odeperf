@@ -109,7 +109,7 @@ def run_test_case(model, nsize, nbatch, ntime, nchunk, jac_type,
 
     mem = torch.cuda.max_memory_allocated()
 
-    return t2 - t1, t3 - t2, R.detach().cpu().numpy(), mem
+    return t2 - t1, t3 - t2, R.detach().cpu().numpy(), mem, model.base.size
 
 def merge_in(tf, a, b):
     ia = iter(a)
@@ -143,6 +143,7 @@ def run_grid(model, nsize, nbatch, ntime, nchunk, jac_type,
     tb_res = np.empty(sizes)
     mem_use = np.empty(sizes)
     check_res = np.empty(sizes)
+    true_sizes = np.empty(sizes)
     
     total_size = np.prod(sizes)
 
@@ -153,7 +154,7 @@ def run_grid(model, nsize, nbatch, ntime, nchunk, jac_type,
         tbs = []
         mems = []
         for r in range(repeat):
-            tf, tb, check, mem = run_test_case(model, *full, device)
+            tf, tb, check, mem, true_size = run_test_case(model, *full, device)
             tfs.append(tf)
             tbs.append(tb)
             mems.append(mem)
@@ -165,11 +166,15 @@ def run_grid(model, nsize, nbatch, ntime, nchunk, jac_type,
         tb_res[ind] = np.mean(tb)
         mem_use[ind] = np.mean(mems)
         check_res[ind] = check
+        true_sizes[ind] = true_size
+    
+    act_sizes = true_sizes[tuple([slice(None)] + [0] * (len(sizes)-1))]
 
     # Setup the xarray frame...
     dims = {m : p for g,m,p in zip(grid, meta_names,params) if g}
     attrs = {m : p for g,m,p in zip(grid, meta_names, params) if not g}
     attrs["repeats" ] = repeat
+    dims["nsize"] = act_sizes
 
     ds = xr.Dataset(
             data_vars = {

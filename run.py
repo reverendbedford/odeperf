@@ -17,7 +17,7 @@ def run_massdamperspring():
     repeats = 3
 
     model = samples.MassDamperSpring
-    nsize = [2,4,6,10,20,30,40,50]
+    nsize = [1,2,3,5,10,15,20,25]
     nbatch = [3,10,30,100,300]
     ntime = 300
     nchunk = [1,2,3,4,5,10,20,30,40,50,75,100]

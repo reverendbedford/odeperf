@@ -88,7 +88,8 @@ def run_test_case(model, nsize, nbatch, ntime, nchunk, jac_type,
     times, y0 = model.base.setup(nbatch, ntime)
     times = times.to(device)
     y0 = y0.to(device)
-
+    
+    torch.cuda.reset_max_memory_allocated()
     t1 = time.time()
     if backward_type == "adjoint":
         res = ode.odeint_adjoint(model, y0, times, method = integration_method,
@@ -106,7 +107,9 @@ def run_test_case(model, nsize, nbatch, ntime, nchunk, jac_type,
 
     t3 = time.time()
 
-    return t2 - t1, t3 - t2, R.detach().cpu().numpy()
+    mem = torch.cuda.max_memory_allocated()
+
+    return t2 - t1, t3 - t2, R.detach().cpu().numpy(), mem
 
 def merge_in(tf, a, b):
     ia = iter(a)
@@ -138,6 +141,7 @@ def run_grid(model, nsize, nbatch, ntime, nchunk, jac_type,
 
     tf_res = np.empty(sizes)
     tb_res = np.empty(sizes)
+    mem_use = np.empty(sizes)
     check_res = np.empty(sizes)
     
     total_size = np.prod(sizes)
@@ -147,15 +151,19 @@ def run_grid(model, nsize, nbatch, ntime, nchunk, jac_type,
         
         tfs = []
         tbs = []
+        mems = []
         for r in range(repeat):
-            tf, tb, check = run_test_case(model, *full, device)
+            tf, tb, check, mem = run_test_case(model, *full, device)
             tfs.append(tf)
             tbs.append(tb)
+            mems.append(mem)
+
 
         ind = np.unravel_index(i, sizes)
 
         tf_res[ind] = np.mean(tf)
         tb_res[ind] = np.mean(tb)
+        mem_use[ind] = np.mean(mems)
         check_res[ind] = check
 
     # Setup the xarray frame...
@@ -167,7 +175,8 @@ def run_grid(model, nsize, nbatch, ntime, nchunk, jac_type,
             data_vars = {
                 "forward_pass": (dims, tf_res),
                 "backward_pass": (dims, tb_res),
-                "check_sum": (dims, check_res)
+                "check_sum": (dims, check_res),
+                "memory_use": (dims, mem_use)
                 },
             coords = dims,
             attrs = attrs)

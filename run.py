@@ -30,7 +30,27 @@ def run_massdamperspring():
 
     res.to_netcdf(name + "_" + dtype + "_" + devtype + ".nc")
 
+def run_neuron():
+    name = "neuron"
+    repeats = 3
+
+    model = samples.Neuron
+    nsize = [1,2,3,4,5,6,7,8,9,10]
+    nbatch = [3,10,30,100,300]
+    ntime = 300
+    nchunk = [1,2,3,4,5,10,20,30,40,50,75,100]
+    jac_type = ["analytic", "AD"]
+    backward_type = ["adjoint", "AD"]
+    integration_method = "backward-euler"
+
+    res = test.run_grid(model, nsize, nbatch, ntime, nchunk, jac_type, 
+            backward_type, integration_method, device, repeat = repeats)
+
+    res.to_netcdf(name + "_" + dtype + "_" + devtype + ".nc")
+
 if __name__ == "__main__":
-    run_massdamperspring()
+    #run_massdamperspring()
+    run_neuron()
+
 
 

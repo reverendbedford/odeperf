@@ -9,7 +9,7 @@ import numpy as np
 import xarray as xr
 import tqdm
 import torch
-from functorch import jacrev, vmap
+from functorch import jacrev, jacfwd, vmap
 
 from pyoptmat import ode
 
@@ -37,7 +37,7 @@ class AnalyticJacobian(torch.nn.Module):
         """
         return self.base.rate(t, y, self.base.force(t)), self.base.jacobian(t, y)
 
-class ADJacobian(torch.nn.Module):
+class ADJacobianBackward(torch.nn.Module):
     """Wrapper providing the Jacobian using AD
     
     Args:
@@ -64,6 +64,33 @@ class ADJacobian(torch.nn.Module):
         
         return rate, vmap(vmap(jacrev(self.base.rate, argnums = 1)))(t, y, force)
 
+class ADJacobianForward(torch.nn.Module):
+    """Wrapper providing the Jacobian using AD
+    
+    Args:
+        base (torch.nn.Module): base module
+    """
+    def __init__(self, base):
+        super().__init__()
+        self.base = base
+
+    def forward(self, t, y):
+        """
+        Return the state rate and Jacobian
+
+        Args:
+            t (torch.tensor): (nchunk, nbatch) tensor of times
+            y (torch.tensor): (nchunk, nbatch, size) tensor of state
+
+        Returns:
+            y_dot: (nchunk, nbatch, size) tensor of state rates
+            J:     (nchunk, nbatch, size, size) tensor of Jacobians
+        """ 
+        force = self.base.force(t)
+        rate = self.base.rate(t, y, force)
+        
+        return rate, vmap(vmap(jacfwd(self.base.rate, argnums = 1)))(t, y, force)
+
 def run_test_case(model, nsize, nbatch, ntime, nchunk, jac_type,
         backward_type, integration_method, device):
     """Run a single test case
@@ -80,8 +107,10 @@ def run_test_case(model, nsize, nbatch, ntime, nchunk, jac_type,
     """
     if jac_type == "analytic":
         model = AnalyticJacobian(model(nsize)).to(device)
-    elif jac_type == "AD":
-        model = ADJacobian(model(nsize)).to(device)
+    elif jac_type == "AD-backward":
+        model = ADJacobianBackward(model(nsize)).to(device)
+    elif jac_type == "AD-forward":
+        model = ADJacobianForward(model(nsize)).to(device)
     else:
         raise ValueError("Unknown Jacobian type %s" % jac_type)
     

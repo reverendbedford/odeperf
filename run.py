@@ -36,7 +36,7 @@ def run_neuron():
 
     model = samples.Neuron
     nsize = [1,2,3,4,5,6,7,8,9,10]
-    nbatch = [3,10,30,100,300]
+    nbatch = [3,10,30,100]
     ntime = 300
     nchunk = [1,2,3,4,5,10,20,30,40,50,75,100]
     jac_type = ["analytic", "AD"]

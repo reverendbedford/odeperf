@@ -127,13 +127,14 @@ class Neuron(torch.nn.Module):
 
         return ydot
 
-    def jacobian(self, t, y):
+    def jacobian(self, t, y, force):
         """
         Return the problem jacobian
 
         Args:
             t (torch.tensor): (nchunk, nbatch) tensor of times
             y (torch.tensor): (nchunk, nbatch, size) tensor of state
+            force (torch.tensor): tensor of driving forces
 
         Returns:
             J:     (nchunk, nbatch, size, size) tensor of Jacobians
@@ -278,13 +279,14 @@ class MassDamperSpring(torch.nn.Module):
 
         return ydot
 
-    def jacobian(self, t, y):
+    def jacobian(self, t, y, force):
         """
         Return the problem jacobian
 
         Args:
             t (torch.tensor): (nchunk, nbatch) tensor of times
             y (torch.tensor): (nchunk, nbatch, size) tensor of state
+            force (torch.tensor): tensor of driving forces
 
         Returns:
             J:     (nchunk, nbatch, size, size) tensor of Jacobians
@@ -308,3 +310,114 @@ class MassDamperSpring(torch.nn.Module):
         J[...,self.half_size:,self.half_size:] += torch.diag_embed(self.C[...,:-1] / self.M[...,1:], offset = -1)
 
         return J
+
+def mbmm(A1, A2):
+    """
+    Batched matrix-matrix multiplication with several batch dimensions
+    """
+    return torch.einsum("...ik,...kj->...ij", A1, A2)
+
+def dReLU(y, x):
+    """Derivative of ReLU with respect to input
+    """
+    yp = y.clone().transpose(-1,-2)
+    inds = x < 0
+    yp[inds] = 0.0
+    return yp.transpose(-1,-2)
+
+class LinearNetwork(torch.nn.Module):
+    """Linear + RELU network that I have laboriously worked out the analytical Jacobian :)
+
+    Args:
+        n (int): size of system - 1
+        nlayers (int): number of linear layers - 1, i.e. nlayers = 1 means 2 layers
+        t_max (float): final time
+        force_mag (float): magnitude of applied force
+        force_period_range (tuple): range of periods for sin force
+    """
+    def __init__(self, n, nlayers = 3, t_max = 1.0, force_mag = 1.0,
+            force_period_range = (1.0e-2, 1.0)):
+        super().__init__()
+        
+        self.n = n
+        self.size = self.n + 1
+
+        self.nlayers = nlayers
+
+        self.layers = torch.nn.ModuleList(
+                [torch.nn.Linear(self.size, self.size) for i in range(self.nlayers)]
+                + [torch.nn.Linear(self.size, self.n)])
+        self.activation = torch.nn.ReLU()
+        self.dactivation = dReLU
+        
+        self.t_max = t_max
+        self.force_mag = force_mag
+        self.force_period_range = force_period_range
+
+    def setup(self, nbatch, ntime):
+        """Setup and return time values and initial conditions for a given batch
+
+        Args:
+            nbatch (int): batch size
+            ntime (int): number of time steps
+        """
+        time = torch.linspace(0, self.t_max, ntime).unsqueeze(-1).expand(ntime, nbatch)
+        y0 = torch.zeros(nbatch, self.n)
+
+        return time, y0
+
+    def force(self, t):
+        """Return the driving force
+
+        Args:
+            t (torch.tensor): (nchunk, nbatch) tensor of times
+        """
+        return self.force_mag * torch.sin(
+                2.0 * torch.pi / torch.linspace(*self.force_period_range, t.shape[-1],
+                    device = t.device) * t,) 
+
+    def rate(self, t, y, force):
+        """
+        Return the state rate
+
+        Args:
+            t (torch.tensor): (nchunk, nbatch) tensor of times
+            y (torch.tensor): (nchunk, nbatch, size) tensor of state
+            force (torch.tensor): tensor of driving forces
+
+        Returns:
+            y_dot: (nchunk, nbatch, size) tensor of state rates
+        """
+        x = torch.cat([y, force.unsqueeze(-1)], dim = -1)
+
+        for l in self.layers:
+            x = self.activation(l(x))
+
+        return x
+
+    def jacobian(self, t, y, force):
+        """
+        Return the problem jacobian
+
+        Args:
+            t (torch.tensor): (nchunk, nbatch) tensor of times
+            y (torch.tensor): (nchunk, nbatch, size) tensor of state
+            force (torch.tensor): tensor of driving forces
+
+        Returns:
+            J:     (nchunk, nbatch, size, size) tensor of Jacobians
+        """
+        # Hmm, we have to track the forward pass
+        x = torch.cat([y, force.unsqueeze(-1)], dim = -1)
+        
+        # Jacobian shape
+        full_shape = y.shape[:-1] + (self.size,)
+        J = torch.diag_embed(torch.ones(full_shape, device = y.device), 
+                dim1 = -1, dim2 = -2)
+        for l in self.layers:
+            x = mbmm(x.unsqueeze(-2), l.weight.transpose(-1,-2)).squeeze(-2) + l.bias
+            J = self.dactivation(mbmm(J,l.weight.transpose(-1,-2)), x)
+            x = self.activation(x)
+        
+        # I suppose I could just untranspose everything...
+        return J[...,:-1,:].transpose(-1,-2)

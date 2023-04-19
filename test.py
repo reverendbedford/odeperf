@@ -35,7 +35,8 @@ class AnalyticJacobian(torch.nn.Module):
             y_dot: (nchunk, nbatch, size) tensor of state rates
             J:     (nchunk, nbatch, size, size) tensor of Jacobians
         """
-        return self.base.rate(t, y, self.base.force(t)), self.base.jacobian(t, y)
+        f = self.base.force(t)
+        return self.base.rate(t, y, f), self.base.jacobian(t, y, f)
 
 class ADJacobianBackward(torch.nn.Module):
     """Wrapper providing the Jacobian using AD

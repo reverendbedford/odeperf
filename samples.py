@@ -317,13 +317,10 @@ def mbmm(A1, A2):
     """
     return torch.einsum("...ik,...kj->...ij", A1, A2)
 
-def dReLU(y, x):
+def dtanh(x):
     """Derivative of ReLU with respect to input
     """
-    yp = y.clone().transpose(-1,-2)
-    inds = x < 0
-    yp[inds] = 0.0
-    return yp.transpose(-1,-2)
+    return 1.0 - torch.tanh(x)**2.0
 
 class LinearNetwork(torch.nn.Module):
     """Linear + RELU network that I have laboriously worked out the analytical Jacobian :)
@@ -347,8 +344,8 @@ class LinearNetwork(torch.nn.Module):
         self.layers = torch.nn.ModuleList(
                 [torch.nn.Linear(self.size, self.size) for i in range(self.nlayers)]
                 + [torch.nn.Linear(self.size, self.n)])
-        self.activation = torch.nn.ReLU()
-        self.dactivation = dReLU
+        self.activation = torch.nn.Tanh()
+        self.dactivation = dtanh
         
         self.t_max = t_max
         self.force_mag = force_mag
@@ -414,9 +411,11 @@ class LinearNetwork(torch.nn.Module):
         full_shape = y.shape[:-1] + (self.size,)
         J = torch.diag_embed(torch.ones(full_shape, device = y.device), 
                 dim1 = -1, dim2 = -2)
+
         for l in self.layers:
             x = mbmm(x.unsqueeze(-2), l.weight.transpose(-1,-2)).squeeze(-2) + l.bias
-            J = self.dactivation(mbmm(J,l.weight.transpose(-1,-2)), x)
+            J = mbmm(mbmm(J,l.weight.transpose(-1,-2)), torch.diag_embed(self.dactivation(x), 
+                    dim1 = -1, dim2 = -2))
             x = self.activation(x)
         
         # I suppose I could just untranspose everything...

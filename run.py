@@ -57,8 +57,8 @@ def run_neural_network():
     nbatch = [3,10,30,100]
     ntime = 300
     nchunk = [1,2,3,4,5,10,20,30,40,50,75,100]
-    jac_type = ["analytic", "AD-backward", "AD-forward"]
-    backward_type = ["adjoint", "AD"]
+    jac_type = ["analytic","AD-backward","AD-forward"]
+    backward_type = ["adjoint"]
     integration_method = "backward-euler"
 
     res = test.run_grid(model, nsize, nbatch, ntime, nchunk, jac_type, 
@@ -68,8 +68,8 @@ def run_neural_network():
 
 
 if __name__ == "__main__":
-    #run_massdamperspring()
-    #run_neuron()
+    run_massdamperspring()
+    run_neuron()
     run_neural_network()
 
 

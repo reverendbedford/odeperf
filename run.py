@@ -19,13 +19,15 @@ def run_massdamperspring():
     model = samples.MassDamperSpring
     nsize = [1,2,3,5,10,15,20,25,50]
     nbatch = [3,10,30,100]
-    ntime = 300
-    nchunk = [1,2,3,4,5,10,20,30,40,50,75,100]
+    ntime = 512+1
+    nchunk = [1,2,4,8,16,32,64,128,256]
     jac_type = ["analytic", "AD-backward", "AD-forward"]
-    backward_type = ["adjoint", "AD"]
+    solver_type = ["thomas", "pcr"]
+    backward_type = ["adjoint"]
     integration_method = "backward-euler"
 
-    res = test.run_grid(model, nsize, nbatch, ntime, nchunk, jac_type, 
+    res = test.run_grid(model, nsize, nbatch, ntime, nchunk, jac_type,
+            solver_type, 
             backward_type, integration_method, device, repeat = repeats)
 
     res.to_netcdf(name + "_" + dtype + "_" + devtype + ".nc")
@@ -37,13 +39,15 @@ def run_neuron():
     model = samples.Neuron
     nsize = [1,2,3,4,5,6,7,8,9,10]
     nbatch = [3,10,30,100]
-    ntime = 300
-    nchunk = [1,2,3,4,5,10,20,30,40,50,75,100]
+    ntime = 512+1
+    nchunk = [1,2,4,8,16,32,64,128,256]
     jac_type = ["analytic", "AD-backward", "AD-forward"]
-    backward_type = ["adjoint", "AD"]
+    solver_type = ["thomas", "pcr"]
+    backward_type = ["adjoint"]
     integration_method = "backward-euler"
 
     res = test.run_grid(model, nsize, nbatch, ntime, nchunk, jac_type, 
+            solver_type, 
             backward_type, integration_method, device, repeat = repeats)
 
     res.to_netcdf(name + "_" + dtype + "_" + devtype + ".nc")
@@ -55,13 +59,15 @@ def run_neural_network():
     model = samples.LinearNetwork
     nsize = [1,5,10,15,20,25,50,100]
     nbatch = [3,10,30,100]
-    ntime = 300
-    nchunk = [1,2,3,4,5,10,20,30,40,50,75,100]
+    ntime = 512+1
+    nchunk = [1,2,4,8,16,32,64,128,256]
     jac_type = ["analytic","AD-backward","AD-forward"]
+    solver_type = ["thomas", "pcr"]
     backward_type = ["adjoint"]
     integration_method = "backward-euler"
 
     res = test.run_grid(model, nsize, nbatch, ntime, nchunk, jac_type, 
+            solver_type,
             backward_type, integration_method, device, repeat = repeats)
 
     res.to_netcdf(name + "_" + dtype + "_" + devtype + ".nc")

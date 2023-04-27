@@ -93,7 +93,7 @@ class ADJacobianForward(torch.nn.Module):
         return rate, vmap(vmap(jacfwd(self.base.rate, argnums = 1)))(t, y, force)
 
 def run_test_case(model, nsize, nbatch, ntime, nchunk, jac_type,
-        backward_type, integration_method, device):
+        solver_type, backward_type, integration_method, device):
     """Run a single test case
 
     Args:
@@ -103,6 +103,7 @@ def run_test_case(model, nsize, nbatch, ntime, nchunk, jac_type,
         ntime (int): number of time steps ("depth") for the problem
         nchunk (int): number of vectorized time steps for integration
         jac_type (string): jacobian choice: "analytic" or "AD"
+        solver_type (string): "thomas" or "pcr"
         backward_type (string): backward pass type: "adjoint" or "AD"
         integration_method (string): integration method for pyoptmat.ode.odeint
     """
@@ -123,10 +124,10 @@ def run_test_case(model, nsize, nbatch, ntime, nchunk, jac_type,
     t1 = time.time()
     if backward_type == "adjoint":
         res = ode.odeint_adjoint(model, y0, times, method = integration_method,
-                block_size = nchunk)
+                block_size = nchunk, direct_solve_method = solver_type)
     elif backward_type == "AD":
         res = ode.odeint(model, y0, times, method = integration_method,
-                block_size = nchunk)
+                block_size = nchunk, direct_solve_method = solver_type)
     else:
         raise ValueError("Unknown backward pass type %s" % backward_type)
 
@@ -154,14 +155,14 @@ def merge_in(tf, a, b):
 
     return res
 
-def run_grid(model, nsize, nbatch, ntime, nchunk, jac_type,
+def run_grid(model, nsize, nbatch, ntime, nchunk, jac_type, solver_type,
         backward_type, integration_method, device, repeat = 1):
     """Run a big grid of simulations and save results in a data frame
     """
-    meta_names = ["nsize", "nbatch", "ntime", "nchunk", "jac_type",
+    meta_names = ["nsize", "nbatch", "ntime", "nchunk", "jac_type", "solver_type",
             "backward_type", "integration_method"]
 
-    params = [nsize, nbatch, ntime, nchunk, jac_type, backward_type,
+    params = [nsize, nbatch, ntime, nchunk, jac_type, solver_type, backward_type,
             integration_method]
     grid = [not np.isscalar(p) for p in params]
     sizes = [len(p) for g,p in zip(grid,params) if g]
@@ -208,6 +209,7 @@ def run_grid(model, nsize, nbatch, ntime, nchunk, jac_type,
 
     ds = xr.Dataset(
             data_vars = {
+                "total_time": (dims, tf_res + tb_res),
                 "forward_pass": (dims, tf_res),
                 "backward_pass": (dims, tb_res),
                 "check_sum": (dims, check_res),

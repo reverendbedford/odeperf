@@ -17,10 +17,10 @@ def run_massdamperspring():
     repeats = 3
 
     model = samples.MassDamperSpring
-    nsize = [1,2,3,5,10,15,20,25,50]
+    nsize = [1,2,3,5,10]
     nbatch = [3,10,30,100]
-    ntime = 512+1
-    nchunk = [1,2,4,8,16,32,64,128,256]
+    ntime = 2000
+    nchunk = [1,3,10,30,100,300,1000]
     jac_type = ["analytic", "AD-backward", "AD-forward"]
     solver_type = ["thomas", "pcr"]
     backward_type = ["adjoint"]
@@ -39,8 +39,8 @@ def run_neuron():
     model = samples.Neuron
     nsize = [1,2,3,4,5,6,7,8,9,10]
     nbatch = [3,10,30,100]
-    ntime = 512+1
-    nchunk = [1,2,4,8,16,32,64,128,256]
+    ntime = 2000
+    nchunk = [1,3,10,30,100,300,1000]
     jac_type = ["analytic", "AD-backward", "AD-forward"]
     solver_type = ["thomas", "pcr"]
     backward_type = ["adjoint"]
@@ -57,10 +57,10 @@ def run_neural_network():
     repeats = 3
 
     model = samples.LinearNetwork
-    nsize = [1,5,10,15,20,25,50,100]
+    nsize = [1,5,10,15,20,25]
     nbatch = [3,10,30,100]
-    ntime = 512+1
-    nchunk = [1,2,4,8,16,32,64,128,256]
+    ntime = 2000
+    nchunk = [1,3,10,30,100,300,1000]
     jac_type = ["analytic","AD-backward","AD-forward"]
     solver_type = ["thomas", "pcr"]
     backward_type = ["adjoint"]

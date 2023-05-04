@@ -4,6 +4,98 @@ adjoint backward pass routines.
 
 import torch
 
+from pyoptmat import models, flowrules, hardening
+from pyoptmat.temperature import ConstantParameter as CP
+
+class Chaboche(torch.nn.Module):
+    """
+    The Chaboche viscoplastic constitutive model, as defined in
+
+    Args:
+        nbackstress (int): number of backstresses, system size is 3 + this number
+    """
+    def __init__(self, nbackstress, t_max = 10.0, e_range = [0.1, 1.0], period = 1.0):
+        super().__init__()
+
+        self.nbackstress = nbackstress
+        self.size = 3 + self.nbackstress
+
+        self.E = torch.nn.Parameter(torch.tensor(10.0))
+
+        self.n = torch.nn.Parameter(torch.tensor(5.0))
+        self.eta = torch.nn.Parameter(torch.tensor(2.0))
+
+        self.s0 = torch.nn.Parameter(torch.tensor(1.0))
+        
+        self.R = torch.nn.Parameter(torch.tensor(10.0))
+        self.d = torch.nn.Parameter(torch.tensor(1.0))
+
+        self.C = torch.nn.Parameter(torch.linspace(0.1,1,self.nbackstress))
+        self.g = torch.nn.Parameter(torch.linspace(0.1,0.5, self.nbackstress))
+
+        self.isotropic = hardening.VoceIsotropicHardeningModel(CP(self.R), CP(self.d))
+        self.kinematic = hardening.ChabocheHardeningModel(CP(self.C), CP(self.g))
+        self.flowrule = flowrules.IsoKinViscoplasticity(CP(self.n), CP(self.eta), CP(self.s0), 
+                self.isotropic, self.kinematic)
+        self.model = models.InelasticModel(CP(self.E), self.flowrule)
+
+        self.t_max = t_max
+        self.e_range = e_range
+        self.period = period
+
+    def setup(self, nbatch, ntime):
+        """Setup and return time values and initial conditions for a given batch
+
+        Args:
+            nbatch (int): batch size
+            ntime (int): number of time steps
+        """
+        time = torch.linspace(0, self.t_max, ntime).unsqueeze(-1).expand(ntime, nbatch)
+        y0 = torch.zeros(nbatch, self.size)
+
+        return time, y0
+
+    def force(self, t):
+        """Return the driving force
+
+        Args:
+            t (torch.tensor): (nchunk, nbatch) tensor of times
+        """
+        return torch.linspace(*self.e_range, t.shape[-1], device = t.device) * torch.sin(
+                2.0 * torch.pi / self.period * t) 
+
+    def rate(self, t, y, force):
+        """
+        Return the state rate
+
+        Args:
+            t (torch.tensor): (nchunk, nbatch) tensor of times
+            y (torch.tensor): (nchunk, nbatch, size) tensor of state
+            force (torch.tensor): tensor of driving forces
+
+        Returns:
+            y_dot: (nchunk, nbatch, size) tensor of state rates
+        """
+        rate, _, _, _ = self.model(t, y, force, torch.zeros_like(force))
+
+        return rate
+
+    def jacobian(self, t, y, force):
+        """
+        Return the problem jacobian
+
+        Args:
+            t (torch.tensor): (nchunk, nbatch) tensor of times
+            y (torch.tensor): (nchunk, nbatch, size) tensor of state
+            force (torch.tensor): tensor of driving forces
+
+        Returns:
+            J:     (nchunk, nbatch, size, size) tensor of Jacobians
+        """
+        _, jac, _, _ = self.model(t, y, force, torch.zeros_like(force))
+
+        return jac
+
 class Neuron(torch.nn.Module):
     """
     ODE model of coupled Neurons, given in

@@ -72,11 +72,31 @@ def run_neural_network():
 
     res.to_netcdf(name + "_" + dtype + "_" + devtype + ".nc")
 
+def run_chaboche():
+    name = "chaboche"
+    repeats = 3
+
+    model = samples.Chaboche
+    nsize = [1,2,3,4,5,6,7,8,9,10]
+    nbatch = [3,10,30,100]
+    ntime = 2000
+    nchunk = [1,3,10,30,100,300,1000]
+    jac_type = ["analytic"]
+    solver_type = ["thomas", "pcr"]
+    backward_type = ["adjoint"]
+    integration_method = "backward-euler"
+
+    res = test.run_grid(model, nsize, nbatch, ntime, nchunk, jac_type, 
+            solver_type, 
+            backward_type, integration_method, device, repeat = repeats)
+
+    res.to_netcdf(name + "_" + dtype + "_" + devtype + ".nc")
 
 if __name__ == "__main__":
     run_massdamperspring()
     run_neuron()
     run_neural_network()
+    run_chaboche()
 
 
 

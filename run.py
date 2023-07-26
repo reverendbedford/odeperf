@@ -12,6 +12,26 @@ dtype = "double"
 device = torch.device("cuda")
 devtype = "cuda"
 
+def run_neural_network_ad_v_adjoint():
+    name = "nn_adjoint_comp"
+    repeats = 3
+
+    model = samples.LinearNetwork
+    nsize = [20]
+    nbatch = [20]
+    ntime = [10,20,30,50,100,200]
+    nchunk = [10]
+    jac_type = ["analytic"]
+    solver_type = ["thomas"]
+    backward_type = ["AD", "adjoint"]
+    integration_method = "backward-euler"
+
+    res = test.run_grid(model, nsize, nbatch, ntime, nchunk, jac_type, 
+            solver_type,
+            backward_type, integration_method, device, repeat = repeats)
+
+    res.to_netcdf(name + "_" + dtype + "_" + devtype + ".nc")
+
 def run_massdamperspring():
     name = "massdamperspring"
     repeats = 3
@@ -81,7 +101,7 @@ def run_chaboche():
     nbatch = [3,10,30,100]
     ntime = 2000
     nchunk = [1,3,10,30,100,300,1000]
-    jac_type = ["analytic"]
+    jac_type = ["analytic","AD-backward","AD-forward"]
     solver_type = ["thomas", "pcr"]
     backward_type = ["adjoint"]
     integration_method = "backward-euler"
@@ -93,6 +113,7 @@ def run_chaboche():
     res.to_netcdf(name + "_" + dtype + "_" + devtype + ".nc")
 
 if __name__ == "__main__":
+    run_neural_network_ad_v_adjoint()
     run_massdamperspring()
     run_neuron()
     run_neural_network()

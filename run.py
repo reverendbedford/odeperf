@@ -9,7 +9,7 @@ torch.set_default_tensor_type(torch.DoubleTensor)
 dtype = "double"
 
 # Setup appropriately...
-device = torch.device("cuda")
+device = torch.device("cuda:1")
 devtype = "cuda"
 
 def run_neural_network_ad_v_adjoint():
@@ -18,9 +18,9 @@ def run_neural_network_ad_v_adjoint():
 
     model = samples.LinearNetwork
     nsize = [20]
-    nbatch = [20]
-    ntime = [10,20,30,50,100,200]
-    nchunk = [10]
+    nbatch = [100]
+    ntime = [100,200,300,500,1000,1500,2000]
+    nchunk = [50]
     jac_type = ["analytic"]
     solver_type = ["thomas"]
     backward_type = ["AD", "adjoint"]
@@ -58,7 +58,7 @@ def run_neuron():
 
     model = samples.Neuron
     nsize = [1,2,3,4,5,6,7,8,9,10]
-    nbatch = [3,10,30,100]
+    nbatch = [3,10,30,50]
     ntime = 2000
     nchunk = [1,3,10,30,100,300,1000]
     jac_type = ["analytic", "AD-backward", "AD-forward"]
@@ -97,8 +97,8 @@ def run_chaboche():
     repeats = 3
 
     model = samples.Chaboche
-    nsize = [1,2,3,4,5,6,7,8,9,10]
-    nbatch = [3,10,30,100]
+    nsize = [1,2,3,4,5]
+    nbatch = [3,10,30,50]
     ntime = 2000
     nchunk = [1,3,10,30,100,300,1000]
     jac_type = ["analytic","AD-backward","AD-forward"]

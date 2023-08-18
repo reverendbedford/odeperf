@@ -189,6 +189,7 @@ def run_grid(model, nsize, nbatch, ntime, nchunk, jac_type, solver_type,
             tfs.append(tf)
             tbs.append(tb)
             mems.append(mem)
+            torch.cuda.empty_cache()
 
 
         ind = np.unravel_index(i, sizes)

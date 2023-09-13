@@ -120,7 +120,7 @@ def run_test_case(model, nsize, nbatch, ntime, nchunk, jac_type,
     times = times.to(device)
     y0 = y0.to(device)
     
-    torch.cuda.reset_max_memory_allocated()
+    torch.cuda.reset_peak_memory_stats(device = device)
     t1 = time.time()
     if backward_type == "adjoint":
         res = ode.odeint_adjoint(model, y0, times, method = integration_method,
@@ -138,7 +138,7 @@ def run_test_case(model, nsize, nbatch, ntime, nchunk, jac_type,
 
     t3 = time.time()
 
-    mem = torch.cuda.max_memory_allocated()
+    mem = torch.cuda.max_memory_allocated(device = device)
 
     return t2 - t1, t3 - t2, R.detach().cpu().numpy(), mem, model.base.size
 

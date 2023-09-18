@@ -18,7 +18,7 @@ class Chaboche(torch.nn.Module):
         super().__init__()
 
         self.nbackstress = nbackstress
-        self.size = 3 + self.nbackstress
+        self.size = 2 + self.nbackstress
 
         self.E = torch.nn.Parameter(torch.tensor(10.0))
 

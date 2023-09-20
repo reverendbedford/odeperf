@@ -2,10 +2,12 @@
 
 import numpy as np
 import xarray as xr
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
     plt.style.use('single')
+    mpl.rc("font", size = 12)
 
     speeds = []
     

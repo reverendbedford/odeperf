@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import xarray as xr
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 if __name__ == "__main__":

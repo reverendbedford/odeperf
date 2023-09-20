@@ -93,7 +93,7 @@ class ADJacobianForward(torch.nn.Module):
         return rate, vmap(vmap(jacfwd(self.base.rate, argnums = 1)))(t, y, force)
 
 def run_test_case(model, nsize, nbatch, ntime, nchunk, jac_type,
-        solver_type, backward_type, integration_method, device):
+        solver_type, backward_type, integration_method, device, return_full = False):
     """Run a single test case
 
     Args:
@@ -106,6 +106,10 @@ def run_test_case(model, nsize, nbatch, ntime, nchunk, jac_type,
         solver_type (string): "thomas" or "pcr"
         backward_type (string): backward pass type: "adjoint" or "AD"
         integration_method (string): integration method for pyoptmat.ode.odeint
+
+    Keyword Args:
+        return_full (bool): if true just return the full trajectory instead of the
+            abstracted results
     """
     if jac_type == "analytic":
         model = AnalyticJacobian(model(nsize)).to(device)
@@ -139,8 +143,11 @@ def run_test_case(model, nsize, nbatch, ntime, nchunk, jac_type,
     t3 = time.time()
 
     mem = torch.cuda.max_memory_allocated(device = device)
-
-    return t2 - t1, t3 - t2, R.detach().cpu().numpy(), mem, model.base.size
+    
+    if return_full:
+        return times, res
+    else:
+        return t2 - t1, t3 - t2, R.detach().cpu().numpy(), mem, model.base.size
 
 def merge_in(tf, a, b):
     ia = iter(a)

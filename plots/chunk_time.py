@@ -2,10 +2,12 @@
 
 import numpy as np
 import xarray as xr
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
     plt.style.use('single')
+    mpl.rc("font", size = 12)
 
     speeds = []
     
@@ -14,7 +16,7 @@ if __name__ == "__main__":
         data = xr.load_dataset("../%s_double_cuda.nc" % model)
        
         plt.figure()
-        plt.plot(data.nchunk, data.isel(nsize=-1, nbatch=-1, jac_type=0, backward_type = 0).total_time)
+        plt.semilogy(data.nchunk, data.isel(nsize=-1, nbatch=-1, jac_type=0, backward_type = 0).total_time)
         plt.legend(["Thomas", "PCR"], loc = 'best')
         plt.xticks([0,250,500,750,1000])
         plt.xlabel("$n_{chunk}$")
@@ -34,7 +36,7 @@ if __name__ == "__main__":
         plt.savefig("%s_memory_biggest.pdf" % model)
 
         plt.figure()
-        plt.plot(data.nchunk, data.isel(nsize=0, nbatch=-1, jac_type=0, backward_type = 0).total_time)
+        plt.semilogy(data.nchunk, data.isel(nsize=0, nbatch=-1, jac_type=0, backward_type = 0).total_time)
         plt.legend(["Thomas", "PCR"], loc = 'best')
         plt.xticks([0,250,500,750,1000])
         plt.xlabel("$n_{chunk}$")
